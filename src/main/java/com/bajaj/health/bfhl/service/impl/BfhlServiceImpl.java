@@ -11,13 +11,8 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
-/**
- * Production-grade implementation of the BfhlService interface.
- * Classifies elements, sums numeric values, reverses and alternates caps of alphabetical letters.
- */
 @Service
 public class BfhlServiceImpl implements BfhlService {
 
@@ -32,74 +27,51 @@ public class BfhlServiceImpl implements BfhlService {
     @Override
     public BfhlResponse processRequest(BfhlRequest request) {
         if (request == null || request.getData() == null) {
-            log.warn("Invalid payload received: request or data field is null");
-            throw new BfhlException("Request data payload cannot be null");
+            throw new BfhlException("data cannot be null");
         }
-
-        log.info("Processing payload with {} input elements", request.getData().size());
 
         List<String> oddNumbers = new ArrayList<>();
         List<String> evenNumbers = new ArrayList<>();
         List<String> alphabets = new ArrayList<>();
         List<String> specialCharacters = new ArrayList<>();
-        BigInteger sumVal = BigInteger.ZERO;
-        StringBuilder lettersCollector = new StringBuilder();
+        BigInteger sum = BigInteger.ZERO;
+        StringBuilder letters = new StringBuilder();
 
         for (String item : request.getData()) {
-            if (item == null) {
+            if (item == null)
                 continue;
-            }
 
-            // Trim leading/trailing spaces for clean matching
-            String trimmedItem = item.trim();
+            String s = item.trim();
 
-            if (trimmedItem.matches("^-?\\d+$")) {
-                // Numeric item detected
-                // BigInteger check for large numbers to prevent overflow
-                BigInteger num = new BigInteger(trimmedItem);
-                sumVal = sumVal.add(num);
-
-                // Use the absolute value's modulo for even/odd check
+            if (s.matches("^-?\\d+$")) {
+                BigInteger num = new BigInteger(s);
+                sum = sum.add(num);
                 if (num.abs().mod(BigInteger.TWO).equals(BigInteger.ZERO)) {
-                    evenNumbers.add(trimmedItem);
+                    evenNumbers.add(s);
                 } else {
-                    oddNumbers.add(trimmedItem);
+                    oddNumbers.add(s);
                 }
-            } else if (trimmedItem.matches("^[a-zA-Z]+$")) {
-                // Alphabet-only string detected
-                alphabets.add(trimmedItem.toUpperCase());
+            } else if (s.matches("^[a-zA-Z]+$")) {
+                alphabets.add(s.toUpperCase());
             } else {
-                // Special characters or mixed format elements
-                specialCharacters.add(trimmedItem);
+                specialCharacters.add(s);
             }
 
-            // Extract all individual alphabetic letters for the concatenation logic
-            for (char ch : trimmedItem.toCharArray()) {
-                if (Character.isLetter(ch)) {
-                    lettersCollector.append(ch);
-                }
+            for (char ch : s.toCharArray()) {
+                if (Character.isLetter(ch))
+                    letters.append(ch);
             }
         }
 
-        // Apply concat_string logic: reverse the collected letters
-        String reversedLetters = lettersCollector.reverse().toString();
-
-        // Apply alternating caps: 1st uppercase, 2nd lowercase, 3rd uppercase, 4th lowercase
-        StringBuilder alternatingCapsBuilder = new StringBuilder();
-        for (int i = 0; i < reversedLetters.length(); i++) {
-            char ch = reversedLetters.charAt(i);
-            if (i % 2 == 0) {
-                alternatingCapsBuilder.append(Character.toUpperCase(ch));
-            } else {
-                alternatingCapsBuilder.append(Character.toLowerCase(ch));
-            }
+        String reversed = letters.reverse().toString();
+        StringBuilder concatBuilder = new StringBuilder();
+        for (int i = 0; i < reversed.length(); i++) {
+            char ch = reversed.charAt(i);
+            concatBuilder.append(i % 2 == 0 ? Character.toUpperCase(ch) : Character.toLowerCase(ch));
         }
-        String concatString = alternatingCapsBuilder.toString();
 
-        log.info("Successfully processed elements. Even: {}, Odd: {}, Alphabets: {}, Specials: {}", 
-                evenNumbers.size(), oddNumbers.size(), alphabets.size(), specialCharacters.size());
-
-        log.debug("Computed sum: {}, generated alternating cap sequence: {}", sumVal, concatString);
+        log.info("done - odd:{} even:{} alpha:{} special:{}", oddNumbers.size(), evenNumbers.size(), alphabets.size(),
+                specialCharacters.size());
 
         return new BfhlResponse(
                 true,
@@ -110,8 +82,7 @@ public class BfhlServiceImpl implements BfhlService {
                 evenNumbers,
                 alphabets,
                 specialCharacters,
-                sumVal.toString(),
-                concatString
-        );
+                sum.toString(),
+                concatBuilder.toString());
     }
 }

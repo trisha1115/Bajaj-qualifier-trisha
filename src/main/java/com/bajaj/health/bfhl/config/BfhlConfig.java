@@ -3,10 +3,6 @@ package com.bajaj.health.bfhl.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
-/**
- * Configuration class to read user metadata from properties.
- * Provides derived values such as format-compliant user_id.
- */
 @Configuration
 public class BfhlConfig {
 
@@ -48,10 +44,6 @@ public class BfhlConfig {
         return rollNumber;
     }
 
-    /**
-     * Generates a unique user ID following the full_name_ddmmyyyy format.
-     * Sanitizes whitespaces by converting to underscores and forces lowercase.
-     */
     public String getUserId() {
         if (fullName == null) {
             return "";

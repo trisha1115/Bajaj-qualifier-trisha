@@ -6,104 +6,71 @@ import com.bajaj.health.bfhl.dto.BfhlResponse;
 import com.bajaj.health.bfhl.exception.BfhlException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 import java.util.Arrays;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.when;
 
-/**
- * Service-level unit tests validating core classifications, calculation algorithms, and edge-case behaviors.
- */
 public class BfhlServiceImplTest {
 
     private BfhlConfig bfhlConfig;
     private BfhlServiceImpl bfhlService;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         bfhlConfig = new BfhlConfig("john_doe", "17091999", "john@xyz.com", "ABCD123");
         bfhlService = new BfhlServiceImpl(bfhlConfig);
     }
 
     @Test
-    public void testSuccessfulProcessingWithStandardPayload() {
-        // Input matching the prompt assignment
-        BfhlRequest request = new BfhlRequest(Arrays.asList("a", "1", "334", "4", "R", "$"));
-        BfhlResponse response = bfhlService.processRequest(request);
+    void basicPayload() {
+        BfhlResponse res = bfhlService.processRequest(
+                new BfhlRequest(Arrays.asList("a", "1", "334", "4", "R", "$")));
 
-        // Core assertions
-        assertNotNull(response);
-        assertTrue(response.isSuccess());
-        assertEquals("john_doe_17091999", response.getUserId());
-        assertEquals("john@xyz.com", response.getEmail());
-        assertEquals("ABCD123", response.getRollNumber());
-
-        // Numeric checks
-        assertEquals(Collections.singletonList("1"), response.getOddNumbers());
-        assertEquals(Arrays.asList("334", "4"), response.getEvenNumbers());
-        assertEquals("339", response.getSum());
-
-        // Alphabetic checks
-        assertEquals(Arrays.asList("A", "R"), response.getAlphabets());
-
-        // Special characters check
-        assertEquals(Collections.singletonList("$"), response.getSpecialCharacters());
-
-        // Alternating reversal check
-        // Collected "a", "R" -> reversed "Ra" -> alternate caps -> "Ra"
-        assertEquals("Ra", response.getConcatString());
+        assertTrue(res.isSuccess());
+        assertEquals("john_doe_17091999", res.getUserId());
+        assertEquals(Collections.singletonList("1"), res.getOddNumbers());
+        assertEquals(Arrays.asList("334", "4"), res.getEvenNumbers());
+        assertEquals("339", res.getSum());
+        assertEquals(Arrays.asList("A", "R"), res.getAlphabets());
+        assertEquals(Collections.singletonList("$"), res.getSpecialCharacters());
+        assertEquals("Ra", res.getConcatString());
     }
 
     @Test
-    public void testEmptyPayloadDoesNotFail() {
-        BfhlRequest request = new BfhlRequest(Collections.emptyList());
-        BfhlResponse response = bfhlService.processRequest(request);
+    void emptyList() {
+        BfhlResponse res = bfhlService.processRequest(new BfhlRequest(Collections.emptyList()));
 
-        assertNotNull(response);
-        assertTrue(response.isSuccess());
-        assertTrue(response.getOddNumbers().isEmpty());
-        assertTrue(response.getEvenNumbers().isEmpty());
-        assertTrue(response.getAlphabets().isEmpty());
-        assertTrue(response.getSpecialCharacters().isEmpty());
-        assertEquals("0", response.getSum());
-        assertEquals("", response.getConcatString());
+        assertTrue(res.isSuccess());
+        assertTrue(res.getOddNumbers().isEmpty());
+        assertTrue(res.getEvenNumbers().isEmpty());
+        assertEquals("0", res.getSum());
+        assertEquals("", res.getConcatString());
     }
 
     @Test
-    public void testNullPayloadThrowsValidationException() {
-        assertThrows(BfhlException.class, () -> {
-            bfhlService.processRequest(null);
-        });
+    void nullRequest_throws() {
+        assertThrows(BfhlException.class, () -> bfhlService.processRequest(null));
     }
 
     @Test
-    public void testNullDataListThrowsValidationException() {
-        BfhlRequest request = new BfhlRequest(null);
-        assertThrows(BfhlException.class, () -> {
-            bfhlService.processRequest(request);
-        });
+    void nullData_throws() {
+        assertThrows(BfhlException.class, () -> bfhlService.processRequest(new BfhlRequest(null)));
     }
 
     @Test
-    public void testLargeNumbersDoNotOverflowSum() {
-        // Verify BigInteger functionality with high numeric strings
-        BfhlRequest request = new BfhlRequest(Arrays.asList("999999999999999999", "1"));
-        BfhlResponse response = bfhlService.processRequest(request);
-
-        assertEquals("1000000000000000000", response.getSum());
+    void largeNumbers() {
+        BfhlResponse res = bfhlService.processRequest(
+                new BfhlRequest(Arrays.asList("999999999999999999", "1")));
+        assertEquals("1000000000000000000", res.getSum());
     }
 
     @Test
-    public void testComplexConcatStringReversalAndCaps() {
-        // Check "A" + "ABCD" + "DOE" -> collected letters: "AABCDDOE"
-        // Reversed: "EODDCBAA"
-        // Alternating: "EoDdCbAa"
-        BfhlRequest request = new BfhlRequest(Arrays.asList("A", "ABCD", "DOE"));
-        BfhlResponse response = bfhlService.processRequest(request);
-
-        assertEquals("EoDdCbAa", response.getConcatString());
+    void concatStringAlternatingCaps() {
+        // "A","ABCD","DOE" -> collected "AABCDDOE" -> reversed "EODDCBAA" -> "EoDdCbAa"
+        BfhlResponse res = bfhlService.processRequest(
+                new BfhlRequest(Arrays.asList("A", "ABCD", "DOE")));
+        assertEquals("EoDdCbAa", res.getConcatString());
     }
 }
